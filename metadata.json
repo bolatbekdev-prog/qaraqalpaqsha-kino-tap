@@ -1,0 +1,8 @@
+{
+  "name": "Qaraqalpaqsha Kino TAP",
+  "description": "Zamanagóy hám Qaraqalpaqsha filmler platforması",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
