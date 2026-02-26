@@ -13,7 +13,8 @@ import AuthModal from './components/AuthModal';
 import TeaserModal from './components/TeaserModal';
 import { MOCK_MOVIES, GENRES } from './constants';
 import { AppNotification, JobApplication, Movie, TabType, Season, Teaser, User } from './types';
-import { onAuthStateChanged, signOut, auth } from './firebase';
+import { onAuthStateChanged, signOut, auth, db } from './firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 
 const getSeason = (): Season => {
   const month = new Date().getMonth();
@@ -44,6 +45,8 @@ const normalizeMovie = (movie: Movie): Movie => ({
   videoUrl: isValidVideoUrl(sanitizeUrl(movie.videoUrl)) ? sanitizeUrl(movie.videoUrl) : ''
 });
 
+const SHARED_DOC_PATH = ['kinoTapApp', 'sharedState'] as const;
+
 const App = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -56,6 +59,9 @@ const App = () => {
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [season] = useState<Season>(getSeason());
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const isRemoteReadyRef = useRef(false);
+  const isApplyingRemoteRef = useRef(false);
+  const sharedDocRef = useRef(doc(db, SHARED_DOC_PATH[0], SHARED_DOC_PATH[1]));
   
   const [movies, setMovies] = useState<Movie[]>(() => {
     const saved = localStorage.getItem('kinotap_movies_kaa_v3');
@@ -109,7 +115,70 @@ const App = () => {
     const saved = localStorage.getItem('kinotap_teasers_v1');
     return saved ? JSON.parse(saved) : [];
   });
+
+  const persistSharedState = async (patch: Record<string, unknown>) => {
+    if (!isRemoteReadyRef.current || isApplyingRemoteRef.current) return;
+    try {
+      await setDoc(
+        sharedDocRef.current,
+        { ...patch, updatedAt: Date.now() },
+        { merge: true }
+      );
+    } catch (err) {
+      console.error('Failed to persist shared app state:', err);
+    }
+  };
   
+  useEffect(() => {
+    const unsubShared = onSnapshot(
+      sharedDocRef.current,
+      async (snap) => {
+        const data = snap.data() as any;
+        if (!data) {
+          try {
+            await setDoc(
+              sharedDocRef.current,
+              {
+                movies: movies.map(normalizeMovie),
+                users,
+                templates,
+                applications,
+                notifications,
+                teasers,
+                updatedAt: Date.now()
+              },
+              { merge: true }
+            );
+          } catch (err) {
+            console.error('Failed to seed shared state:', err);
+          } finally {
+            isRemoteReadyRef.current = true;
+          }
+          return;
+        }
+
+        isApplyingRemoteRef.current = true;
+        if (Array.isArray(data.movies)) setMovies(data.movies.map(normalizeMovie));
+        if (Array.isArray(data.users)) setUsers(data.users);
+        if (Array.isArray(data.templates)) setTemplates(data.templates);
+        if (Array.isArray(data.applications)) setApplications(data.applications);
+        if (Array.isArray(data.notifications)) setNotifications(data.notifications);
+        if (Array.isArray(data.teasers)) setTeasers(data.teasers);
+
+        isRemoteReadyRef.current = true;
+        window.setTimeout(() => {
+          isApplyingRemoteRef.current = false;
+        }, 0);
+      },
+      (err) => {
+        console.error('Shared state listener error:', err);
+        isRemoteReadyRef.current = true;
+      }
+    );
+
+    return () => unsubShared();
+  }, []);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -124,10 +193,17 @@ const App = () => {
           role: adminEmails.includes(email) || email.includes('admin') ? 'admin' : 'user'
         };
         setUser(userData);
-        // Ensure the signed-in user exists in local users list
+        // Ensure signed-in user is globally visible to admin/users via Firestore-backed state.
         setUsers(prev => {
-          if (prev.find(p => p.email.toLowerCase() === userData.email.toLowerCase())) return prev;
-          return [{ id: userData.id, name: userData.name, email: userData.email, avatar: userData.avatar, role: userData.role }, ...prev];
+          const existingIndex = prev.findIndex(p => p.email.toLowerCase() === userData.email.toLowerCase());
+          let next = prev;
+          if (existingIndex === -1) {
+            next = [{ id: userData.id, name: userData.name, email: userData.email, avatar: userData.avatar, role: userData.role }, ...prev];
+          } else {
+            next = prev.map((p, idx) => idx === existingIndex ? { ...p, ...userData } : p);
+          }
+          void persistSharedState({ users: next });
+          return next;
         });
       } else {
         setUser(null);
@@ -138,6 +214,17 @@ const App = () => {
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
+    setUsers(prev => {
+      const existingIndex = prev.findIndex(p => p.email.toLowerCase() === loggedInUser.email.toLowerCase());
+      let next = prev;
+      if (existingIndex === -1) {
+        next = [loggedInUser, ...prev];
+      } else {
+        next = prev.map((p, idx) => idx === existingIndex ? { ...p, ...loggedInUser } : p);
+      }
+      void persistSharedState({ users: next });
+      return next;
+    });
     setIsAuthModalOpen(false);
   };
   
@@ -182,7 +269,11 @@ const App = () => {
   }, []);
 
   const handleUpdateMovie = (updatedMovie: Movie) => {
-    setMovies(prev => prev.map(m => m.id === updatedMovie.id ? normalizeMovie(updatedMovie) : m));
+    setMovies(prev => {
+      const next = prev.map(m => m.id === updatedMovie.id ? normalizeMovie(updatedMovie) : m);
+      void persistSharedState({ movies: next });
+      return next;
+    });
   };
 
   const handleHeroStartWatching = () => {
@@ -206,7 +297,11 @@ const App = () => {
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
-    setApplications(prev => [application, ...prev]);
+    setApplications(prev => {
+      const next = [application, ...prev];
+      void persistSharedState({ applications: next });
+      return next;
+    });
   };
 
   const createNotification = (payload: { type: AppNotification['type']; title: string; message: string; targetUserId?: string | null }) => {
@@ -219,12 +314,20 @@ const App = () => {
       targetUserId: payload.targetUserId ?? null,
       readBy: []
     };
-    setNotifications(prev => [notification, ...prev].slice(0, 200));
+    setNotifications(prev => {
+      const next = [notification, ...prev].slice(0, 200);
+      void persistSharedState({ notifications: next });
+      return next;
+    });
   };
 
   const handleUpdateApplication = (updatedApplication: JobApplication) => {
     const previous = applications.find(a => a.id === updatedApplication.id);
-    setApplications(prev => prev.map(a => a.id === updatedApplication.id ? updatedApplication : a));
+    setApplications(prev => {
+      const next = prev.map(a => a.id === updatedApplication.id ? updatedApplication : a);
+      void persistSharedState({ applications: next });
+      return next;
+    });
 
     if (previous && previous.status !== updatedApplication.status) {
       const statusTitle =
@@ -253,24 +356,28 @@ const App = () => {
   );
 
   const handleMarkNotificationRead = (notificationId: string) => {
-    setNotifications(prev =>
-      prev.map(n => {
+    setNotifications(prev => {
+      const next = prev.map(n => {
         if (n.id !== notificationId) return n;
         if (n.readBy.includes(viewerId)) return n;
         return { ...n, readBy: [...n.readBy, viewerId] };
-      })
-    );
+      });
+      void persistSharedState({ notifications: next });
+      return next;
+    });
   };
 
   const handleMarkAllNotificationsRead = () => {
     const visibleIds = new Set(visibleNotifications.map(n => n.id));
-    setNotifications(prev =>
-      prev.map(n => {
+    setNotifications(prev => {
+      const next = prev.map(n => {
         if (!visibleIds.has(n.id)) return n;
         if (n.readBy.includes(viewerId)) return n;
         return { ...n, readBy: [...n.readBy, viewerId] };
-      })
-    );
+      });
+      void persistSharedState({ notifications: next });
+      return next;
+    });
   };
 
   const handleAddTeaser = (payload: Omit<Teaser, 'id' | 'createdAt'>) => {
@@ -282,7 +389,11 @@ const App = () => {
       imageUrl: payload.imageUrl,
       videoUrl: payload.videoUrl
     };
-    setTeasers(prev => [teaser, ...prev]);
+    setTeasers(prev => {
+      const next = [teaser, ...prev];
+      void persistSharedState({ teasers: next });
+      return next;
+    });
     createNotification({
       type: 'teaser',
       title: `Jańa teaser: ${teaser.title}`,
@@ -325,23 +436,52 @@ const App = () => {
               users={users}
               templates={templates}
               applications={applications}
-              onAdd={(m) => setMovies([normalizeMovie(m), ...movies])} 
+              onAdd={(m) => {
+                const next = [normalizeMovie(m), ...movies];
+                setMovies(next);
+                void persistSharedState({ movies: next });
+              }} 
               onUpdate={handleUpdateMovie}
-              onDelete={(id) => setMovies(movies.filter(m => m.id !== id))}
-              onAddUser={(u:any) => setUsers([u, ...users])}
-              onUpdateUser={(updated:any) => setUsers(prev => prev.map(p => p.id === updated.id ? updated : p))}
-              onDeleteUser={(id:string) => setUsers(prev => prev.filter(u => u.id !== id))}
+              onDelete={(id) => {
+                const next = movies.filter(m => m.id !== id);
+                setMovies(next);
+                void persistSharedState({ movies: next });
+              }}
+              onAddUser={(u:any) => {
+                const next = [u, ...users];
+                setUsers(next);
+                void persistSharedState({ users: next });
+              }}
+              onUpdateUser={(updated:any) => setUsers(prev => {
+                const next = prev.map(p => p.id === updated.id ? updated : p);
+                void persistSharedState({ users: next });
+                return next;
+              })}
+              onDeleteUser={(id:string) => setUsers(prev => {
+                const next = prev.filter(u => u.id !== id);
+                void persistSharedState({ users: next });
+                return next;
+              })}
               onSaveTemplate={(t:any) => setTemplates(prev => {
                 const exists = prev.some((item:any) => item.id === t.id);
-                if (exists) return prev.map((item:any) => item.id === t.id ? t : item);
-                return [t, ...prev];
+                const next = exists ? prev.map((item:any) => item.id === t.id ? t : item) : [t, ...prev];
+                void persistSharedState({ templates: next });
+                return next;
               })}
-              onDeleteTemplate={(id:string) => setTemplates(prev => prev.filter(t => t.id !== id))}
+              onDeleteTemplate={(id:string) => setTemplates(prev => {
+                const next = prev.filter(t => t.id !== id);
+                void persistSharedState({ templates: next });
+                return next;
+              })}
               onUpdateApplication={handleUpdateApplication}
               onPublishNotification={(payload) => createNotification(payload)}
               teasers={teasers}
               onAddTeaser={handleAddTeaser}
-              onDeleteTeaser={(id) => setTeasers(prev => prev.filter(t => t.id !== id))}
+              onDeleteTeaser={(id) => setTeasers(prev => {
+                const next = prev.filter(t => t.id !== id);
+                void persistSharedState({ teasers: next });
+                return next;
+              })}
             />
           </div>
         ) : activeTab === 'profile' && user ? (

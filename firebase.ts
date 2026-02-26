@@ -2,6 +2,7 @@
 // Using the project configuration provided by the user
 import { initializeApp } from 'firebase/app';
 import { getAnalytics } from 'firebase/analytics';
+import { getFirestore } from 'firebase/firestore';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -30,6 +31,7 @@ try {
 }
 
 export const auth = getAuth(app);
+export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
 // Re-export wrappers to keep the same API as the previous mock
@@ -45,4 +47,3 @@ export const signInWithPopupAsAdmin = async (a: any, p: any) => {
   // that attempts the normal popup and leaves the rest to Firebase.
   return firebaseSignInWithPopup(a, p);
 };
-
