@@ -42,9 +42,9 @@ const Navbar: React.FC<NavbarProps> = ({
             onClick={() => setActiveTab('home')}
           >
             {/* Logo Group Container */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {/* QMU Logo (Left) */}
-              <div className="w-12 h-12 bg-white rounded-full p-0.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] group-hover:scale-110">
+              <div className="w-14 h-14 bg-white rounded-full p-0.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] group-hover:scale-110">
                 <img 
                   src={QMU_LOGO} 
                   alt="QMU" 
@@ -53,7 +53,7 @@ const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               {/* Central Qaraqalpaqfilm Logo */}
-              <div className="relative h-12 flex items-center transition-all duration-500 group-hover:scale-105 filter group-hover:drop-shadow-[0_0_20px_rgba(229,9,20,0.5)]">
+              <div className="relative h-14 flex items-center transition-all duration-500 group-hover:scale-105 filter group-hover:drop-shadow-[0_0_20px_rgba(229,9,20,0.5)]">
                 {!logoError ? (
                   <img 
                     src={QARAQALPAQFILM_LOGO} 
@@ -67,7 +67,7 @@ const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               {/* UNI Academy Logo (Right) */}
-              <div className="w-12 h-12 bg-white rounded-full p-0.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] group-hover:scale-110">
+              <div className="w-14 h-14 bg-white rounded-full p-0.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] group-hover:scale-110">
                 <img 
                   src={UNI_ACADEMY_LOGO} 
                   alt="UNI Academy" 
@@ -76,7 +76,7 @@ const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
 
-            <div className="hidden sm:flex flex-col border-l-2 border-white/20 pl-5 h-12 justify-center">
+            <div className="hidden sm:flex flex-col border-l-2 border-white/20 pl-5 h-14 justify-center">
               <span className="text-lg font-black tracking-tighter text-white uppercase leading-none">
                 KINO<span className="text-plex-red">TAP</span>
               </span>
@@ -85,16 +85,16 @@ const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="hidden xl:flex items-center gap-8">
-            <button onClick={() => setActiveTab('home')} className={`text-[12px] font-black uppercase tracking-[0.14em] transition-all ${activeTab === 'home' ? 'text-plex-red scale-110' : 'text-gray-400 hover:text-white'}`}>Bas bet</button>
-            <button onClick={() => setActiveTab('ai-assistant')} className={`text-[12px] font-black uppercase tracking-[0.14em] transition-all ${activeTab === 'ai-assistant' ? 'text-plex-red scale-110' : 'text-gray-400 hover:text-white'}`}>AI Járdemshi</button>
-            <button onClick={() => setActiveTab('feedback')} className={`text-[12px] font-black uppercase tracking-[0.14em] transition-all ${activeTab === 'feedback' ? 'text-plex-red scale-110' : 'text-gray-400 hover:text-white'}`}>Pikirler</button>
-            <button onClick={() => setActiveTab('team')} className={`text-[12px] font-black uppercase tracking-[0.14em] transition-all ${activeTab === 'team' ? 'text-plex-red scale-110' : 'text-gray-400 hover:text-white'}`}>Komanda</button>
+            <button onClick={() => setActiveTab('home')} className={`text-[12px] font-black uppercase tracking-[0.12em] whitespace-nowrap transition-all ${activeTab === 'home' ? 'text-plex-red scale-110' : 'text-gray-400 hover:text-white'}`}>Bas bet</button>
+            <button onClick={() => setActiveTab('ai-assistant')} className={`text-[12px] font-black uppercase tracking-[0.12em] whitespace-nowrap transition-all ${activeTab === 'ai-assistant' ? 'text-plex-red scale-110' : 'text-gray-400 hover:text-white'}`}>AI Járdemshi</button>
+            <button onClick={() => setActiveTab('feedback')} className={`text-[12px] font-black uppercase tracking-[0.12em] whitespace-nowrap transition-all ${activeTab === 'feedback' ? 'text-plex-red scale-110' : 'text-gray-400 hover:text-white'}`}>Pikirler</button>
+            <button onClick={() => setActiveTab('team')} className={`text-[12px] font-black uppercase tracking-[0.12em] whitespace-nowrap transition-all ${activeTab === 'team' ? 'text-plex-red scale-110' : 'text-gray-400 hover:text-white'}`}>Komanda</button>
             
             {/* ADMIN PANEL BUTTON - ONLY FOR ADMINS */}
             {user?.role === 'admin' && (
               <button 
                 onClick={() => setActiveTab('admin')} 
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-xl border border-plex-red/30 text-[12px] font-black uppercase tracking-[0.14em] transition-all ${activeTab === 'admin' ? 'bg-plex-red text-white shadow-lg shadow-plex-red/30' : 'text-plex-red hover:bg-plex-red hover:text-white'}`}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-xl border border-plex-red/30 text-[12px] font-black uppercase tracking-[0.12em] whitespace-nowrap transition-all ${activeTab === 'admin' ? 'bg-plex-red text-white shadow-lg shadow-plex-red/30' : 'text-plex-red hover:bg-plex-red hover:text-white'}`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Admin Panel
