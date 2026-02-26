@@ -59,7 +59,56 @@ const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onSelectMovie, movies
     return movies.some((m) => q.includes(m.title.toLowerCase()));
   };
 
+  const normalizeForMatch = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/á/g, 'a')
+      .replace(/ó/g, 'o')
+      .replace(/ú/g, 'u')
+      .replace(/í/g, 'i')
+      .replace(/ń/g, 'n')
+      .replace(/ǵ/g, 'g')
+      .replace(/q/g, 'q');
+
+  const detectRequestedGenres = (question: string) => {
+    const q = normalizeForMatch(question);
+    const map: Array<{ key: string; aliases: string[] }> = [
+      { key: 'Tariyxıy', aliases: ['tariyxiy', 'tarixiy', 'histor', 'tarix'] },
+      { key: 'Komediya', aliases: ['komediya', 'kulki', 'comed'] },
+      { key: 'Drama', aliases: ['drama', 'dramat'] },
+      { key: 'Urıs-talas', aliases: ['uris', 'uris-talas', 'jangari', 'action'] },
+      { key: 'Qorqınıshlı', aliases: ['qorq', 'horror', 'ujas'] },
+      { key: 'Sargúzash', aliases: ['sarguzash', 'adventure'] },
+      { key: 'Multfilm', aliases: ['multfilm', 'multik', 'animation', 'cartoon'] },
+      { key: 'Qaraqalpaq Film', aliases: ['qaraqalpaq', 'milliy'] }
+    ];
+
+    return map.filter((g) => g.aliases.some((a) => q.includes(a))).map((g) => g.key);
+  };
+
+  const matchByRequestedGenres = (question: string) => {
+    const requested = detectRequestedGenres(question);
+    if (requested.length === 0) return [];
+    return movies
+      .filter((m) => m.genre.some((g) => requested.includes(g)))
+      .slice(0, 6)
+      .map((m) => m.id);
+  };
+
   const buildLocalAnswer = (question: string) => {
+    const byGenre = matchByRequestedGenres(question);
+    if (byGenre.length > 0) {
+      const titles = byGenre
+        .map((id) => movies.find((m) => m.id === id)?.title)
+        .filter(Boolean)
+        .join(', ');
+      return {
+        answer: `Siz soragan janr boyınsha usınıslar: ${titles}.`,
+        suggestedMovieIds: byGenre,
+        recommendationType: 'fallback'
+      };
+    }
+
     const q = question.toLowerCase();
     const qWords = q.split(/[^a-zA-Z0-9áóúíńǵqń]+/).filter(Boolean);
 
@@ -239,7 +288,9 @@ const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onSelectMovie, movies
       data = parseStructuredResponse(cleanText);
 
       const finalText = data.answer || "Sorawıńız boyınsha maǵlıwmat taba almadım.";
-      const suggestedMovies = Array.isArray(data.suggestedMovieIds) ? data.suggestedMovieIds.map((id: any) => Number(id)).filter((id: number) => Number.isFinite(id)) : [];
+      const aiSuggested = Array.isArray(data.suggestedMovieIds) ? data.suggestedMovieIds.map((id: any) => Number(id)).filter((id: number) => Number.isFinite(id)) : [];
+      const byGenre = matchByRequestedGenres(userMessage);
+      const suggestedMovies = byGenre.length > 0 ? byGenre : aiSuggested;
       const msgType = data.recommendationType;
       const isScopeFallback = /here is the json/i.test(finalText) || /^\{/.test(finalText);
       const normalizedText = msgType === 'out_of_scope' || isScopeFallback ? OUT_OF_SCOPE_REPLY : finalText;
