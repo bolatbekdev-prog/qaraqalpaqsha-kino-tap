@@ -11,12 +11,12 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           <div className="space-y-6">
             <div className="flex items-center">
-              <div className="h-14 flex items-center">
+              <div className="h-20 w-[220px] flex items-center">
                 {!logoError ? (
                   <img 
                     src={QARAQALPAQFILM_LOGO} 
                     alt="Qaraqalpaqfilm" 
-                    className="h-full w-auto object-contain opacity-95 hover:opacity-100 transition-all duration-500 hover:scale-105 brightness-125 shadow-2xl"
+                    className="h-full w-full object-contain scale-[1.08] opacity-95 hover:opacity-100 transition-all duration-500 hover:scale-105 brightness-125 shadow-2xl [image-rendering:-webkit-optimize-contrast]"
                     onError={() => setLogoError(true)}
                   />
                 ) : (

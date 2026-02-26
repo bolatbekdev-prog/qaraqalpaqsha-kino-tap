@@ -98,6 +98,33 @@ const MovieModal: React.FC<MovieModalProps> = ({ movie, onClose, isFavorite, onT
     return url;
   };
 
+  const resolveFallbackPlayback = async (secureMovieId: string) => {
+    const localMp4 = `/videos/${secureMovieId}.mp4`;
+    try {
+      const check = await fetch(localMp4, { method: 'HEAD' });
+      if (check.ok) {
+        setResolvedVideoUrl(localMp4);
+        setResolvedKind('video');
+        setShowPlayer(true);
+        setStreamError('');
+        return true;
+      }
+    } catch {
+      // continue to youtube fallback
+    }
+
+    const fallbackId = getYouTubeIdFromImageUrl(movie.imageUrl);
+    if (fallbackId) {
+      setResolvedVideoUrl(buildYouTubeEmbed(fallbackId));
+      setResolvedKind('youtube');
+      setShowPlayer(true);
+      setStreamError('');
+      return true;
+    }
+
+    return false;
+  };
+
   const openProtectedPlayer = async () => {
     const secureMovieId = parseSecureMovieId(movie.videoUrl);
     setStreamError('');
@@ -136,12 +163,8 @@ const MovieModal: React.FC<MovieModalProps> = ({ movie, onClose, isFavorite, onT
       setShowPlayer(true);
     } catch {
       if (secureMovieId) {
-        // Fallback: if secure stream server is down, try local site-hosted mp4.
-        setResolvedVideoUrl(`/videos/${secureMovieId}.mp4`);
-        setResolvedKind('video');
-        setShowPlayer(true);
-        setStreamError('');
-        return;
+        const resolved = await resolveFallbackPlayback(secureMovieId);
+        if (resolved) return;
       }
       const fallbackId = getYouTubeIdFromImageUrl(movie.imageUrl);
       if (fallbackId) {

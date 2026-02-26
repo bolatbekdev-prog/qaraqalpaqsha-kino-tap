@@ -59,6 +59,39 @@ const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onSelectMovie, movies
     return movies.some((m) => q.includes(m.title.toLowerCase()));
   };
 
+  const buildLocalAnswer = (question: string) => {
+    const q = question.toLowerCase();
+    const qWords = q.split(/[^a-zA-Z0-9áóúíńǵqń]+/).filter(Boolean);
+
+    const scored = movies
+      .map((m) => {
+        const hay = `${m.title} ${m.genre.join(' ')} ${m.description}`.toLowerCase();
+        const score = qWords.reduce((acc, w) => (hay.includes(w) ? acc + 1 : acc), 0);
+        return { movie: m, score };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((x) => x.movie);
+
+    if (scored.length === 0) {
+      const top = movies.slice(0, 3);
+      const ids = top.map((m) => m.id);
+      const titles = top.map((m) => m.title).join(', ');
+      return {
+        answer: `API waqıtınsha baylanıspay atır. Kino TAP usınısları: ${titles}. Qaysı janr sizge unaydı?`,
+        suggestedMovieIds: ids,
+        recommendationType: 'fallback'
+      };
+    }
+
+    return {
+      answer: `Siz ushin usı kinolardı usınıs etemen: ${scored.map((m) => m.title).join(', ')}.`,
+      suggestedMovieIds: scored.map((m) => m.id),
+      recommendationType: 'fallback'
+    };
+  };
+
   const parseStructuredResponse = (raw: string) => {
     const cleaned = raw
       .trim()
@@ -129,10 +162,6 @@ const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onSelectMovie, movies
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    if (!ai) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "API gilt tabılmadı. Iltimas, API key ornatıń." }]);
-      return;
-    }
 
     const userMessage = input;
     setInput('');
@@ -140,6 +169,21 @@ const GeminiAssistant: React.FC<GeminiAssistantProps> = ({ onSelectMovie, movies
 
     if (!isInScopeQuestion(userMessage)) {
       setMessages(prev => [...prev, { id: `a_scope_${Date.now()}`, role: 'assistant', content: OUT_OF_SCOPE_REPLY }]);
+      return;
+    }
+
+    if (!ai) {
+      const local = buildLocalAnswer(userMessage);
+      setMessages(prev => [
+        ...prev,
+        {
+          id: `a_local_${Date.now()}`,
+          role: 'assistant',
+          content: local.answer,
+          suggestedMovies: local.suggestedMovieIds,
+          type: local.recommendationType
+        }
+      ]);
       return;
     }
 
