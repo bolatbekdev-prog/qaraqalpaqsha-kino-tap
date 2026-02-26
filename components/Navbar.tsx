@@ -44,7 +44,7 @@ const Navbar: React.FC<NavbarProps> = ({
             {/* Logo Group Container */}
             <div className="flex items-center gap-4">
               {/* QMU Logo (Left) */}
-              <div className="w-20 h-20 bg-white rounded-full p-0.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] group-hover:scale-110">
+              <div className="w-14 h-14 bg-white rounded-full p-0.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] group-hover:scale-110">
                 <img 
                   src={QMU_LOGO} 
                   alt="QMU" 
@@ -53,7 +53,7 @@ const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               {/* Central Qaraqalpaqfilm Logo */}
-              <div className="relative h-20 w-[250px] flex items-center transition-all duration-500 group-hover:scale-105 filter group-hover:drop-shadow-[0_0_20px_rgba(229,9,20,0.5)]">
+              <div className="relative h-14 w-[170px] flex items-center transition-all duration-500 group-hover:scale-105 filter group-hover:drop-shadow-[0_0_20px_rgba(229,9,20,0.5)]">
                 {!logoError ? (
                   <img 
                     src={QARAQALPAQFILM_LOGO} 
@@ -67,7 +67,7 @@ const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               {/* UNI Academy Logo (Right) */}
-              <div className="w-20 h-20 bg-white rounded-full p-0.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] group-hover:scale-110">
+              <div className="w-14 h-14 bg-white rounded-full p-0.5 shadow-lg border border-white/20 flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] group-hover:scale-110">
                 <img 
                   src={UNI_ACADEMY_LOGO} 
                   alt="UNI Academy" 
@@ -76,7 +76,7 @@ const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
 
-            <div className="hidden sm:flex flex-col border-l-2 border-white/20 pl-5 h-20 justify-center">
+            <div className="hidden sm:flex flex-col border-l-2 border-white/20 pl-5 h-14 justify-center">
               <span className="text-lg font-black tracking-tighter text-white uppercase leading-none">
                 KINO<span className="text-plex-red">TAP</span>
               </span>
