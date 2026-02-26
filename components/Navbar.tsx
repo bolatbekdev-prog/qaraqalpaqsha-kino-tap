@@ -48,7 +48,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 <img 
                   src={QMU_LOGO} 
                   alt="QMU" 
-                  className="w-full h-full object-contain scale-[1.4] [image-rendering:-webkit-optimize-contrast]"
+                  className="w-full h-full object-contain scale-[1.2] [image-rendering:-webkit-optimize-contrast]"
                 />
               </div>
 
@@ -71,7 +71,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 <img 
                   src={UNI_ACADEMY_LOGO} 
                   alt="UNI Academy" 
-                  className="w-full h-full object-contain scale-[1.4] [image-rendering:-webkit-optimize-contrast]"
+                  className="w-full h-full object-contain scale-[1.2] [image-rendering:-webkit-optimize-contrast]"
                 />
               </div>
             </div>
