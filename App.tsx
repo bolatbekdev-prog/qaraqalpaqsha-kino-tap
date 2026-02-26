@@ -62,6 +62,7 @@ const App = () => {
   const isRemoteReadyRef = useRef(false);
   const isApplyingRemoteRef = useRef(false);
   const sharedDocRef = useRef(doc(db, SHARED_DOC_PATH[0], SHARED_DOC_PATH[1]));
+  const syncTimerRef = useRef<number | null>(null);
   
   const [movies, setMovies] = useState<Movie[]>(() => {
     const saved = localStorage.getItem('kinotap_movies_kaa_v3');
@@ -127,6 +128,18 @@ const App = () => {
     } catch (err) {
       console.error('Failed to persist shared app state:', err);
     }
+  };
+
+  const upsertGlobalUser = (incoming: User) => {
+    setUsers(prev => {
+      const existingIndex = prev.findIndex(p => p.email.toLowerCase() === incoming.email.toLowerCase());
+      const next =
+        existingIndex === -1
+          ? [incoming, ...prev]
+          : prev.map((p, idx) => (idx === existingIndex ? { ...p, ...incoming } : p));
+      void persistSharedState({ users: next });
+      return next;
+    });
   };
   
   useEffect(() => {
@@ -194,17 +207,7 @@ const App = () => {
         };
         setUser(userData);
         // Ensure signed-in user is globally visible to admin/users via Firestore-backed state.
-        setUsers(prev => {
-          const existingIndex = prev.findIndex(p => p.email.toLowerCase() === userData.email.toLowerCase());
-          let next = prev;
-          if (existingIndex === -1) {
-            next = [{ id: userData.id, name: userData.name, email: userData.email, avatar: userData.avatar, role: userData.role }, ...prev];
-          } else {
-            next = prev.map((p, idx) => idx === existingIndex ? { ...p, ...userData } : p);
-          }
-          void persistSharedState({ users: next });
-          return next;
-        });
+        upsertGlobalUser(userData);
       } else {
         setUser(null);
       }
@@ -214,17 +217,7 @@ const App = () => {
 
   const handleLogin = (loggedInUser: User) => {
     setUser(loggedInUser);
-    setUsers(prev => {
-      const existingIndex = prev.findIndex(p => p.email.toLowerCase() === loggedInUser.email.toLowerCase());
-      let next = prev;
-      if (existingIndex === -1) {
-        next = [loggedInUser, ...prev];
-      } else {
-        next = prev.map((p, idx) => idx === existingIndex ? { ...p, ...loggedInUser } : p);
-      }
-      void persistSharedState({ users: next });
-      return next;
-    });
+    upsertGlobalUser(loggedInUser);
     setIsAuthModalOpen(false);
   };
   
@@ -261,6 +254,24 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('kinotap_teasers_v1', JSON.stringify(teasers));
   }, [teasers]);
+
+  useEffect(() => {
+    if (!isRemoteReadyRef.current || isApplyingRemoteRef.current) return;
+    if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = window.setTimeout(() => {
+      void persistSharedState({
+        movies,
+        users,
+        templates,
+        applications,
+        notifications,
+        teasers
+      });
+    }, 300);
+    return () => {
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+    };
+  }, [movies, users, templates, applications, notifications, teasers]);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -437,20 +448,26 @@ const App = () => {
               templates={templates}
               applications={applications}
               onAdd={(m) => {
-                const next = [normalizeMovie(m), ...movies];
-                setMovies(next);
-                void persistSharedState({ movies: next });
+                setMovies(prev => {
+                  const next = [normalizeMovie(m), ...prev];
+                  void persistSharedState({ movies: next });
+                  return next;
+                });
               }} 
               onUpdate={handleUpdateMovie}
               onDelete={(id) => {
-                const next = movies.filter(m => m.id !== id);
-                setMovies(next);
-                void persistSharedState({ movies: next });
+                setMovies(prev => {
+                  const next = prev.filter(m => m.id !== id);
+                  void persistSharedState({ movies: next });
+                  return next;
+                });
               }}
               onAddUser={(u:any) => {
-                const next = [u, ...users];
-                setUsers(next);
-                void persistSharedState({ users: next });
+                setUsers(prev => {
+                  const next = [u, ...prev];
+                  void persistSharedState({ users: next });
+                  return next;
+                });
               }}
               onUpdateUser={(updated:any) => setUsers(prev => {
                 const next = prev.map(p => p.id === updated.id ? updated : p);
@@ -488,7 +505,10 @@ const App = () => {
           <div className="pt-24">
             <ProfileManager 
               user={user} 
-              onUpdate={(updatedUser) => setUser(updatedUser)} 
+              onUpdate={(updatedUser) => {
+                setUser(updatedUser);
+                upsertGlobalUser(updatedUser);
+              }} 
               season={season} 
             />
           </div>
